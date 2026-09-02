@@ -279,8 +279,8 @@ func ValidateConformance(source SourceModel, report MachineReport) error {
 	if err := ValidateSource(source); err != nil {
 		return err
 	}
-	if len(report.Claims) != ExpectedCaseTotal || len(report.Cases) != ExpectedCaseTotal || len(report.Transitions) != ExpectedCaseTotal*3 {
-		return fmt.Errorf("runtime report cardinality is not 12 claims, 12 cases, and 36 transitions")
+	if len(report.Claims) != ExpectedCaseTotal || len(report.Cases) != ExpectedCaseTotal || len(report.Transitions) != expectedTransitionCount(source.Cases) {
+		return fmt.Errorf("runtime report cardinality is not 12 claims, 12 cases, and one final transition per case plus every evidence link")
 	}
 	if report.FixedVector.DenominatorCells != ExpectedDenominator || report.FixedVector.DenominatorID != source.Policy.DenominatorID {
 		return fmt.Errorf("runtime denominator does not preserve the fixed 12-cell vector")
@@ -335,4 +335,12 @@ func equalStrings(left, right []string) bool {
 		}
 	}
 	return true
+}
+
+func expectedTransitionCount(cases []CaseSpec) int {
+	count := 0
+	for _, caseSpec := range cases {
+		count += 2 + len(caseSpec.EvidenceIDs)
+	}
+	return count
 }
