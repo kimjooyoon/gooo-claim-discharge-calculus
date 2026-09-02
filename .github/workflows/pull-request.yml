@@ -1,0 +1,52 @@
+name: pull request verification
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Go 1.27 claim discharge conformance
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out proposed revision
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Go 1.27.0
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.27.0'
+          cache: false
+      - name: Check Go formatting
+        shell: bash
+        run: gofmt -w .
+      - name: Build
+        shell: bash
+        run: go build ./...
+      - name: Test
+        shell: bash
+        run: go test ./...
+      - name: Vet
+        shell: bash
+        run: go vet ./...
+      - name: Run fixed conformance
+        shell: bash
+        run: |
+          set -euo pipefail
+          output_dir="$RUNNER_TEMP/gooo-claim-discharge-calculus-pr-${GITHUB_RUN_ID}"
+          go run ./cmd/gooo-claim-discharge-calculus conformance \
+            --root "$GITHUB_WORKSPACE" \
+            --source "$GITHUB_WORKSPACE/examples/claim-discharge-calculus.gooo" \
+            --output-dir "$output_dir" \
+            --runner "github-actions/${RUNNER_OS}"
+      - name: Upload machine and dossier evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gooo-claim-discharge-calculus-pr-${{ github.run_id }}
+          path: ${{ runner.temp }}/gooo-claim-discharge-calculus-pr-${{ github.run_id }}
+          if-no-files-found: warn

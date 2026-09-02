@@ -1,0 +1,90 @@
+gooo claim_discharge_calculus v1
+
+entity name=Claim id=gooo://claim-discharge/Claim edge=authority:entity:Claim
+entity name=Evidence id=gooo://claim-discharge/Evidence edge=authority:entity:Evidence
+entity name=DischargeRule id=gooo://claim-discharge/DischargeRule edge=authority:entity:DischargeRule
+entity name=ActiveFrontierProjection id=gooo://claim-discharge/ActiveFrontierProjection edge=authority:entity:ActiveFrontierProjection
+
+denominator id=claim-discharge-v1 cells=12
+runtime repository_writes=0 local_test_executions=0 cross_project_required_gates=0
+precedence values=REFUTED,UNKNOWN,CLOSED
+unknown_fields values=stage,step,reason,unknown_class,next_operation,blocked_by
+explicit_fixed_point value=FIXED_POINT
+public_utility value=UNKNOWN
+
+proof branch=FOUNDATION cells=4 edge=authority:proof:FOUNDATION
+proof branch=COHERENCE cells=4 edge=authority:proof:COHERENCE
+proof branch=REGRESSION cells=4 edge=authority:proof:REGRESSION
+
+indicator class=DRIVER id=indicator:DRIVER:1 cells=1 edge=authority:indicator:DRIVER:1
+indicator class=DRIVER id=indicator:DRIVER:2 cells=1 edge=authority:indicator:DRIVER:2
+indicator class=DRIVER id=indicator:DRIVER:3 cells=1 edge=authority:indicator:DRIVER:3
+indicator class=DRIVER id=indicator:DRIVER:4 cells=1 edge=authority:indicator:DRIVER:4
+indicator class=OUTCOME id=indicator:OUTCOME:1 cells=1 edge=authority:indicator:OUTCOME:1
+indicator class=OUTCOME id=indicator:OUTCOME:2 cells=1 edge=authority:indicator:OUTCOME:2
+indicator class=OUTCOME id=indicator:OUTCOME:3 cells=1 edge=authority:indicator:OUTCOME:3
+indicator class=OUTCOME id=indicator:OUTCOME:4 cells=1 edge=authority:indicator:OUTCOME:4
+indicator class=GUARDRAIL id=indicator:GUARDRAIL:1 cells=1 edge=authority:indicator:GUARDRAIL:1
+indicator class=GUARDRAIL id=indicator:GUARDRAIL:2 cells=1 edge=authority:indicator:GUARDRAIL:2
+indicator class=GUARDRAIL id=indicator:GUARDRAIL:3 cells=1 edge=authority:indicator:GUARDRAIL:3
+indicator class=GUARDRAIL id=indicator:GUARDRAIL:4 cells=1 edge=authority:indicator:GUARDRAIL:4
+
+rule id=EXACT_PROOF_DISCHARGE edge=rule:exact-proof-discharge matches=subject,predicate,scope_digest,contract_digest,toolchain_digest evidence_state=SUPPORTS proof_branch=SELECTED frontier_action=REMOVE decision=CLOSED resolution=FIXED_POINT precedence=3
+rule id=KNOWN_COUNTEREXAMPLE edge=rule:known-counterexample matches=subject,predicate,scope_digest,contract_digest,toolchain_digest evidence_state=REFUTES proof_branch=ANY frontier_action=RETAIN decision=REFUTED resolution=REFUTED precedence=1
+rule id=UNKNOWN_FAIL_CLOSED edge=rule:unknown-fail-closed matches=subject,predicate,scope_digest,contract_digest,toolchain_digest evidence_state=UNKNOWN proof_branch=ANY frontier_action=RETAIN decision=UNKNOWN resolution=UNKNOWN precedence=2
+rule id=OPERATIONAL_REFUTED edge=rule:operational-refuted matches=subject,predicate,scope_digest,contract_digest,toolchain_digest evidence_state=OPERATIONAL_REFUTED proof_branch=ANY frontier_action=RETAIN decision=REFUTED resolution=OPERATIONAL_REFUTED precedence=1
+
+projection id=frontier:active edge=projection:claim->frontier initial_claim_ids=claim:closed-foundation,claim:closed-coherence,claim:closed-regression,claim:closed-foundation-repeat,claim:unknown-subject,claim:unknown-branch,claim:unknown-contract,claim:unknown-missing,claim:refuted-direct,claim:refuted-priority,claim:refuted-branch,claim:refuted-operational
+
+activity ordinal=1 id=DECLARE_CLAIM edge=activity:declare->claim inputs=Claim output=Claim
+activity ordinal=2 id=REGISTER_EVIDENCE edge=activity:evidence->ledger inputs=Evidence output=Evidence
+activity ordinal=3 id=CONNECT_EVIDENCE edge=activity:evidence->claim inputs=Evidence,Claim output=Claim
+activity ordinal=4 id=COMPARE_IDENTITY edge=activity:compare->tuple inputs=Claim,Evidence output=DischargeRule
+activity ordinal=5 id=SELECT_PROOF_BRANCH edge=activity:select-proof->branch inputs=DischargeRule output=DischargeRule
+activity ordinal=6 id=EVALUATE_DISCHARGE edge=activity:evaluate->decision inputs=Claim,Evidence,DischargeRule output=Claim
+activity ordinal=7 id=PROJECT_FRONTIER edge=activity:project->frontier inputs=Claim output=ActiveFrontierProjection
+activity ordinal=8 id=RETAIN_APPEND_ONLY edge=activity:retain->ledger inputs=Claim,Evidence output=Claim
+activity ordinal=9 id=EMIT_CLOSED edge=activity:closed->frontier inputs=Claim,ActiveFrontierProjection output=ActiveFrontierProjection
+activity ordinal=10 id=EMIT_UNKNOWN edge=activity:unknown->frontier inputs=Claim,ActiveFrontierProjection output=ActiveFrontierProjection
+activity ordinal=11 id=EMIT_REFUTED edge=activity:refuted->frontier inputs=Claim,ActiveFrontierProjection output=ActiveFrontierProjection
+activity ordinal=12 id=RECORD_OPERATIONAL_REFUTED edge=activity:operational-refuted->ledger inputs=Evidence,Claim output=Claim
+
+claim case=CASE_CLOSED_FOUNDATION id=claim:closed-foundation edge=claim-edge:closed-foundation subject=service-a predicate=healthy scope_digest=sha256:scope-a contract_digest=sha256:contract-v1 toolchain_digest=sha256:go1.27
+claim case=CASE_CLOSED_COHERENCE id=claim:closed-coherence edge=claim-edge:closed-coherence subject=service-b predicate=healthy scope_digest=sha256:scope-b contract_digest=sha256:contract-v1 toolchain_digest=sha256:go1.27
+claim case=CASE_CLOSED_REGRESSION id=claim:closed-regression edge=claim-edge:closed-regression subject=service-c predicate=healthy scope_digest=sha256:scope-c contract_digest=sha256:contract-v1 toolchain_digest=sha256:go1.27
+claim case=CASE_CLOSED_FOUNDATION_REPEAT id=claim:closed-foundation-repeat edge=claim-edge:closed-foundation-repeat subject=service-d predicate=healthy scope_digest=sha256:scope-d contract_digest=sha256:contract-v1 toolchain_digest=sha256:go1.27
+claim case=CASE_UNKNOWN_SUBJECT id=claim:unknown-subject edge=claim-edge:unknown-subject subject=service-e predicate=healthy scope_digest=sha256:scope-e contract_digest=sha256:contract-v1 toolchain_digest=sha256:go1.27
+claim case=CASE_UNKNOWN_BRANCH id=claim:unknown-branch edge=claim-edge:unknown-branch subject=service-f predicate=healthy scope_digest=sha256:scope-f contract_digest=sha256:contract-v1 toolchain_digest=sha256:go1.27
+claim case=CASE_UNKNOWN_CONTRACT id=claim:unknown-contract edge=claim-edge:unknown-contract subject=service-g predicate=healthy scope_digest=sha256:scope-g contract_digest=sha256:contract-v1 toolchain_digest=sha256:go1.27
+claim case=CASE_UNKNOWN_MISSING id=claim:unknown-missing edge=claim-edge:unknown-missing subject=service-h predicate=healthy scope_digest=sha256:scope-h contract_digest=sha256:contract-v1 toolchain_digest=sha256:go1.27
+claim case=CASE_REFUTED_DIRECT id=claim:refuted-direct edge=claim-edge:refuted-direct subject=service-i predicate=healthy scope_digest=sha256:scope-i contract_digest=sha256:contract-v1 toolchain_digest=sha256:go1.27
+claim case=CASE_REFUTED_PRIORITY id=claim:refuted-priority edge=claim-edge:refuted-priority subject=service-j predicate=healthy scope_digest=sha256:scope-j contract_digest=sha256:contract-v1 toolchain_digest=sha256:go1.27
+claim case=CASE_REFUTED_BRANCH id=claim:refuted-branch edge=claim-edge:refuted-branch subject=service-k predicate=healthy scope_digest=sha256:scope-k contract_digest=sha256:contract-v1 toolchain_digest=sha256:go1.27
+claim case=CASE_REFUTED_OPERATIONAL id=claim:refuted-operational edge=claim-edge:refuted-operational subject=service-l predicate=healthy scope_digest=sha256:scope-l contract_digest=sha256:contract-v1 toolchain_digest=sha256:go1.27
+
+evidence case=CASE_CLOSED_FOUNDATION id=evidence:closed-foundation edge=evidence-edge:closed-foundation claim_id=claim:closed-foundation subject=service-a predicate=healthy scope_digest=sha256:scope-a contract_digest=sha256:contract-v1 toolchain_digest=sha256:go1.27 state=SUPPORTS proof_branch=FOUNDATION reason=exact-support
+evidence case=CASE_CLOSED_COHERENCE id=evidence:closed-coherence edge=evidence-edge:closed-coherence claim_id=claim:closed-coherence subject=service-b predicate=healthy scope_digest=sha256:scope-b contract_digest=sha256:contract-v1 toolchain_digest=sha256:go1.27 state=SUPPORTS proof_branch=COHERENCE reason=exact-support
+evidence case=CASE_CLOSED_REGRESSION id=evidence:closed-regression edge=evidence-edge:closed-regression claim_id=claim:closed-regression subject=service-c predicate=healthy scope_digest=sha256:scope-c contract_digest=sha256:contract-v1 toolchain_digest=sha256:go1.27 state=SUPPORTS proof_branch=REGRESSION reason=exact-support
+evidence case=CASE_CLOSED_FOUNDATION_REPEAT id=evidence:closed-foundation-repeat edge=evidence-edge:closed-foundation-repeat claim_id=claim:closed-foundation-repeat subject=service-d predicate=healthy scope_digest=sha256:scope-d contract_digest=sha256:contract-v1 toolchain_digest=sha256:go1.27 state=SUPPORTS proof_branch=FOUNDATION reason=exact-support
+evidence case=CASE_UNKNOWN_SUBJECT id=evidence:unknown-subject edge=evidence-edge:unknown-subject claim_id=claim:unknown-subject subject=service-x predicate=healthy scope_digest=sha256:scope-e contract_digest=sha256:contract-v1 toolchain_digest=sha256:go1.27 state=SUPPORTS proof_branch=FOUNDATION reason=subject-mismatch
+evidence case=CASE_UNKNOWN_BRANCH id=evidence:unknown-branch edge=evidence-edge:unknown-branch claim_id=claim:unknown-branch subject=service-f predicate=healthy scope_digest=sha256:scope-f contract_digest=sha256:contract-v1 toolchain_digest=sha256:go1.27 state=SUPPORTS proof_branch=UNDECLARED reason=unknown-proof-branch
+evidence case=CASE_UNKNOWN_CONTRACT id=evidence:unknown-contract edge=evidence-edge:unknown-contract claim_id=claim:unknown-contract subject=service-g predicate=healthy scope_digest=sha256:scope-g contract_digest=sha256:contract-v2 toolchain_digest=sha256:go1.27 state=SUPPORTS proof_branch=FOUNDATION reason=contract-mismatch
+evidence case=CASE_UNKNOWN_MISSING id=evidence:unknown-missing edge=evidence-edge:unknown-missing claim_id=claim:unknown-missing subject=service-h predicate=healthy scope_digest=sha256:scope-h contract_digest=sha256:contract-v1 toolchain_digest= state=SUPPORTS proof_branch=FOUNDATION reason=missing-toolchain-digest
+evidence case=CASE_REFUTED_DIRECT id=evidence:refuted-direct edge=evidence-edge:refuted-direct claim_id=claim:refuted-direct subject=service-i predicate=healthy scope_digest=sha256:scope-i contract_digest=sha256:contract-v1 toolchain_digest=sha256:go1.27 state=REFUTES proof_branch=REGRESSION reason=known-counterexample
+evidence case=CASE_REFUTED_PRIORITY id=evidence:priority-support edge=evidence-edge:priority-support claim_id=claim:refuted-priority subject=service-j predicate=healthy scope_digest=sha256:scope-j contract_digest=sha256:contract-v1 toolchain_digest=sha256:go1.27 state=SUPPORTS proof_branch=COHERENCE reason=supporting-observation
+evidence case=CASE_REFUTED_PRIORITY id=evidence:priority-refutation edge=evidence-edge:priority-refutation claim_id=claim:refuted-priority subject=service-j predicate=healthy scope_digest=sha256:scope-j contract_digest=sha256:contract-v1 toolchain_digest=sha256:go1.27 state=REFUTES proof_branch=COHERENCE reason=known-counterexample-takes-precedence
+evidence case=CASE_REFUTED_BRANCH id=evidence:refuted-branch edge=evidence-edge:refuted-branch claim_id=claim:refuted-branch subject=service-k predicate=healthy scope_digest=sha256:scope-k contract_digest=sha256:contract-v1 toolchain_digest=sha256:go1.27 state=REFUTES proof_branch=UNDECLARED reason=counterexample-over-unknown-branch
+evidence case=CASE_REFUTED_OPERATIONAL id=evidence:refuted-operational edge=evidence-edge:refuted-operational claim_id=claim:refuted-operational subject=service-l predicate=healthy scope_digest=sha256:scope-l contract_digest=sha256:contract-v1 toolchain_digest=sha256:go1.27 state=OPERATIONAL_REFUTED proof_branch=REGRESSION reason=failed-execution-preserved
+
+case ordinal=1 id=CASE_CLOSED_FOUNDATION claim_id=claim:closed-foundation evidence_ids=evidence:closed-foundation rule_id=EXACT_PROOF_DISCHARGE selected_branch=FOUNDATION expected=CLOSED expected_resolution=FIXED_POINT expected_frontier=REMOVED unknown_stage=EVIDENCE unknown_step=COMPARE unknown_reason=not-used unknown_class=not-used next_operation=none blocked_by=none
+case ordinal=2 id=CASE_CLOSED_COHERENCE claim_id=claim:closed-coherence evidence_ids=evidence:closed-coherence rule_id=EXACT_PROOF_DISCHARGE selected_branch=COHERENCE expected=CLOSED expected_resolution=FIXED_POINT expected_frontier=REMOVED unknown_stage=EVIDENCE unknown_step=COMPARE unknown_reason=not-used unknown_class=not-used next_operation=none blocked_by=none
+case ordinal=3 id=CASE_CLOSED_REGRESSION claim_id=claim:closed-regression evidence_ids=evidence:closed-regression rule_id=EXACT_PROOF_DISCHARGE selected_branch=REGRESSION expected=CLOSED expected_resolution=FIXED_POINT expected_frontier=REMOVED unknown_stage=EVIDENCE unknown_step=COMPARE unknown_reason=not-used unknown_class=not-used next_operation=none blocked_by=none
+case ordinal=4 id=CASE_CLOSED_FOUNDATION_REPEAT claim_id=claim:closed-foundation-repeat evidence_ids=evidence:closed-foundation-repeat rule_id=EXACT_PROOF_DISCHARGE selected_branch=FOUNDATION expected=CLOSED expected_resolution=FIXED_POINT expected_frontier=REMOVED unknown_stage=EVIDENCE unknown_step=COMPARE unknown_reason=not-used unknown_class=not-used next_operation=none blocked_by=none
+case ordinal=5 id=CASE_UNKNOWN_SUBJECT claim_id=claim:unknown-subject evidence_ids=evidence:unknown-subject rule_id=UNKNOWN_FAIL_CLOSED selected_branch=FOUNDATION expected=UNKNOWN expected_resolution=UNKNOWN expected_frontier=RETAINED unknown_stage=EVIDENCE unknown_step=IDENTITY unknown_reason=subject-mismatch unknown_class=IDENTITY_MISMATCH next_operation=collect-exact-evidence blocked_by=evidence:unknown-subject
+case ordinal=6 id=CASE_UNKNOWN_BRANCH claim_id=claim:unknown-branch evidence_ids=evidence:unknown-branch rule_id=UNKNOWN_FAIL_CLOSED selected_branch=UNDECLARED expected=UNKNOWN expected_resolution=UNKNOWN expected_frontier=RETAINED unknown_stage=PROOF unknown_step=SELECT_BRANCH unknown_reason=proof-branch-unknown unknown_class=UNKNOWN_VALUE next_operation=select-declared-proof-branch blocked_by=evidence:unknown-branch
+case ordinal=7 id=CASE_UNKNOWN_CONTRACT claim_id=claim:unknown-contract evidence_ids=evidence:unknown-contract rule_id=UNKNOWN_FAIL_CLOSED selected_branch=FOUNDATION expected=UNKNOWN expected_resolution=UNKNOWN expected_frontier=RETAINED unknown_stage=EVIDENCE unknown_step=IDENTITY unknown_reason=contract-digest-mismatch unknown_class=CONTRACT_MISMATCH next_operation=bind-current-contract-digest blocked_by=evidence:unknown-contract
+case ordinal=8 id=CASE_UNKNOWN_MISSING claim_id=claim:unknown-missing evidence_ids=evidence:unknown-missing rule_id=UNKNOWN_FAIL_CLOSED selected_branch=FOUNDATION expected=UNKNOWN expected_resolution=UNKNOWN expected_frontier=RETAINED unknown_stage=EVIDENCE unknown_step=READ_VALUE unknown_reason=toolchain-digest-missing unknown_class=MISSING_VALUE next_operation=record-toolchain-digest blocked_by=evidence:unknown-missing
+case ordinal=9 id=CASE_REFUTED_DIRECT claim_id=claim:refuted-direct evidence_ids=evidence:refuted-direct rule_id=KNOWN_COUNTEREXAMPLE selected_branch=REGRESSION expected=REFUTED expected_resolution=REFUTED expected_frontier=RETAINED unknown_stage=EVIDENCE unknown_step=COMPARE unknown_reason=not-used unknown_class=not-used next_operation=none blocked_by=none
+case ordinal=10 id=CASE_REFUTED_PRIORITY claim_id=claim:refuted-priority evidence_ids=evidence:priority-support,evidence:priority-refutation rule_id=KNOWN_COUNTEREXAMPLE selected_branch=COHERENCE expected=REFUTED expected_resolution=REFUTED expected_frontier=RETAINED unknown_stage=EVIDENCE unknown_step=COMPARE unknown_reason=not-used unknown_class=not-used next_operation=none blocked_by=none
+case ordinal=11 id=CASE_REFUTED_BRANCH claim_id=claim:refuted-branch evidence_ids=evidence:refuted-branch rule_id=KNOWN_COUNTEREXAMPLE selected_branch=UNDECLARED expected=REFUTED expected_resolution=REFUTED expected_frontier=RETAINED unknown_stage=EVIDENCE unknown_step=COMPARE unknown_reason=not-used unknown_class=not-used next_operation=none blocked_by=none
+case ordinal=12 id=CASE_REFUTED_OPERATIONAL claim_id=claim:refuted-operational evidence_ids=evidence:refuted-operational rule_id=OPERATIONAL_REFUTED selected_branch=REGRESSION expected=REFUTED expected_resolution=OPERATIONAL_REFUTED expected_frontier=RETAINED unknown_stage=EXECUTION unknown_step=RECORD_FAILURE unknown_reason=not-used unknown_class=not-used next_operation=none blocked_by=none
