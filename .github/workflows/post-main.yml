@@ -1,0 +1,41 @@
+name: post-main evidence
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  evidence:
+    name: Main Go 1.27 evidence
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out merged revision
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Go 1.27.0
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.27.0'
+          cache: false
+      - name: Run main conformance
+        shell: bash
+        run: |
+          set -euo pipefail
+          output_dir="$RUNNER_TEMP/gooo-claim-discharge-calculus-main-${GITHUB_RUN_ID}"
+          go run ./cmd/gooo-claim-discharge-calculus conformance \
+            --root "$GITHUB_WORKSPACE" \
+            --source "$GITHUB_WORKSPACE/examples/claim-discharge-calculus.gooo" \
+            --output-dir "$output_dir" \
+            --runner "github-actions/${RUNNER_OS}"
+      - name: Upload main evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gooo-claim-discharge-calculus-main-${{ github.run_id }}
+          path: ${{ runner.temp }}/gooo-claim-discharge-calculus-main-${{ github.run_id }}
+          if-no-files-found: warn

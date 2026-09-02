@@ -1,0 +1,67 @@
+name: immutable v0.1.0 release
+
+on:
+  push:
+    tags: ['v0.1.0']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Draft then publish release evidence
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out tagged main evidence
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Go 1.27.0
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.27.0'
+          cache: false
+      - name: Build release evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-list -n 1 "$GITHUB_REF")" = "$GITHUB_SHA"
+          output_dir="$RUNNER_TEMP/gooo-claim-discharge-calculus-release-${GITHUB_RUN_ID}"
+          go run ./cmd/gooo-claim-discharge-calculus conformance \
+            --root "$GITHUB_WORKSPACE" \
+            --source "$GITHUB_WORKSPACE/examples/claim-discharge-calculus.gooo" \
+            --output-dir "$output_dir" \
+            --runner "github-actions/${RUNNER_OS}"
+          bundle="$RUNNER_TEMP/gooo-claim-discharge-calculus-v0.1.0.tar.gz"
+          tar -C "$output_dir" -czf "$bundle" .
+          sha256sum "$bundle" > "$bundle.sha256"
+      - name: Create draft release first
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create v0.1.0 --draft --verify-tag --title v0.1.0 --notes "Immutable claim discharge calculus evidence for $GITHUB_SHA."
+      - name: Upload release assets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release upload v0.1.0 \
+            "$RUNNER_TEMP/gooo-claim-discharge-calculus-v0.1.0.tar.gz" \
+            "$RUNNER_TEMP/gooo-claim-discharge-calculus-v0.1.0.tar.gz.sha256"
+      - name: Publish the draft release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release edit v0.1.0 --draft=false
+      - name: Verify public release and asset digest
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          release_json="$RUNNER_TEMP/release.json"
+          gh api "repos/${GITHUB_REPOSITORY}/releases/tags/v0.1.0" > "$release_json"
+          grep -Eq '"draft"[[:space:]]*:[[:space:]]*false' "$release_json"
+          grep -Eq '"immutable"[[:space:]]*:[[:space:]]*true' "$release_json"
+          grep -q 'gooo-claim-discharge-calculus-v0.1.0.tar.gz' "$release_json"
